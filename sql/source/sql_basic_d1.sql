@@ -55,4 +55,31 @@ from geolocation
 where geolocation_city like 'sao%';
 
 
---C:\Users\BPL\AppData\Roaming\DBeaverData\workspace6\General\Scripts\Script-2.sql
+-- Aggregate funtions
+-- To count rows incl. nulls.
+-- without groupby 
+select count(*) from customers; --99441
+
+-- with groupby
+select order_status, count(*)
+from orders 
+group by order_status
+order by count desc;
+
+select * from customers;
+-- WHERE before grouping
+SELECT customer_state,
+       COUNT(*) AS customers
+FROM customers
+WHERE customer_state <> 'SP'
+GROUP BY customer_state;
+
+
+select * from order_items;
+--HAVING after grouping
+SELECT seller_id,
+       COUNT(*) AS items_sold
+FROM order_items
+GROUP BY seller_id
+HAVING COUNT(*) > 100;
+
