@@ -32,7 +32,7 @@ select * from order_reviews;
 select review_score,
 	count(*) review_count
 from order_reviews
-group by review_score;
+group by review_score;	
 
 --What is the overall average score?
 select  avg(review_score) as overall_review_score
@@ -47,7 +47,7 @@ select seller_state,
 		count(*) seller_count
 from sellers
 group by seller_state
-having count(*) >= 50
+having count(*) > 50
 order by seller_count desc;
 
 --(6) Average price and freight per order item, rounded to 2 decimals.
