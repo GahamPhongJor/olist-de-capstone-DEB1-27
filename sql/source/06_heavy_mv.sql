@@ -248,7 +248,7 @@ pairs AS (
 SELECT order_id, order_item_id, seller_state, customer_state, delivery_days, is_late,
        ROUND((6371 * acos(LEAST(1, GREATEST(-1,
               cos(radians(clat)) * cos(radians(slat)) * cos(radians(slng) - radians(clng))
-            + sin(radians(clat)) * sin(radians(slat)))))), 1)   AS distance_km
+            + sin(radians(clat)) * sin(radians(slat))))))::numeric, 1)   AS distance_km
 FROM pairs;
 
 CREATE UNIQUE INDEX ux_mv_delivery_distance ON staging.mv_delivery_distance (order_id, order_item_id);
