@@ -43,7 +43,7 @@ DB_URL = (f"postgresql+psycopg2://{DB_USER}:{quote_plus(DB_PASSWORD or '')}"  # 
 # one ID per run, saved on every row we load (lineage)
 RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-DATE_FORMAT = "%d/%m/%Y %H:%M:%S.%f"   # original Olist CSV, e.g. 2017-10-02 10:56:33
+DATE_FORMAT = "%d/%m/%Y %H:%M"   # original Olist CSV, e.g. 2017-10-02 10:56:33
 
 DATE_COLUMNS = [
     "order_purchase_timestamp",
