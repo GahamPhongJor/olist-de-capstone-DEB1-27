@@ -83,7 +83,7 @@ CREATE OR REPLACE PROCEDURE staging.load_customers()
 LANGUAGE plpgsql AS $$
 DECLARE v_rows INT;
 BEGIN
-    TRUNCATE staging.customers;                              -- rerunnable (Delating all the data records from the table and ready to load new data or load again)
+    TRUNCATE staging.customers;                              -- rerunnable (Delating all the data records from the table and ready to load new data or load data again)
 
     INSERT INTO staging.customers                            -- Load into staging.customers
     SELECT DISTINCT ON (customer_id)                         -- Transform: deduplication

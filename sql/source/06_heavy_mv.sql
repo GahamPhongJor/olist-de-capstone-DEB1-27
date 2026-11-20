@@ -10,6 +10,7 @@
 --
 -- Layering: mv_order_summary is the BASE. mv_customer_rfm and mv_cohort_retention
 -- read from it (MV on MV), so REFRESH ORDER MATTERS.
+-- It only updates when you run REFRESH MATERIALIZED VIEW.
 -- =====================================================================
 
 CREATE SCHEMA IF NOT EXISTS staging;
@@ -19,10 +20,11 @@ CREATE INDEX IF NOT EXISTS ix_items_product ON staging.order_items (product_id);
 CREATE INDEX IF NOT EXISTS ix_items_seller  ON staging.order_items (seller_id);
 CREATE INDEX IF NOT EXISTS ix_orders_cust   ON staging.orders (customer_id);
 
-DROP MATERIALIZED VIEW IF EXISTS staging.mv_order_summary CASCADE;   -- also drops dependents
+DROP MATERIALIZED VIEW IF EXISTS staging.mv_order_summary CASCADE;   -- also drops dependents/CASCADE tells PostgreSQL to also delete objects (depended objects: mv_customer_rfm and mv_cohort_retention) that depend on the materialized view.
 DROP MATERIALIZED VIEW IF EXISTS staging.mv_monthly_category_revenue;
 DROP MATERIALIZED VIEW IF EXISTS staging.mv_seller_scorecard;
 DROP MATERIALIZED VIEW IF EXISTS staging.mv_delivery_distance;
+
 
 -- ---------------------------------------------------------------------
 -- 1. BASE: one row per order, joined from 5 sources
@@ -248,7 +250,7 @@ pairs AS (
 SELECT order_id, order_item_id, seller_state, customer_state, delivery_days, is_late,
        ROUND((6371 * acos(LEAST(1, GREATEST(-1,
               cos(radians(clat)) * cos(radians(slat)) * cos(radians(slng) - radians(clng))
-            + sin(radians(clat)) * sin(radians(slat)))))), 1)   AS distance_km
+            + sin(radians(clat)) * sin(radians(slat))))))::numeric, 1)   AS distance_km
 FROM pairs;
 
 CREATE UNIQUE INDEX ux_mv_delivery_distance ON staging.mv_delivery_distance (order_id, order_item_id);
