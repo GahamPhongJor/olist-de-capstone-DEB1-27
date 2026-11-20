@@ -10,6 +10,7 @@
 --
 -- Layering: mv_order_summary is the BASE. mv_customer_rfm and mv_cohort_retention
 -- read from it (MV on MV), so REFRESH ORDER MATTERS.
+-- It only updates when you run REFRESH MATERIALIZED VIEW.
 -- =====================================================================
 
 CREATE SCHEMA IF NOT EXISTS staging;
@@ -19,10 +20,11 @@ CREATE INDEX IF NOT EXISTS ix_items_product ON staging.order_items (product_id);
 CREATE INDEX IF NOT EXISTS ix_items_seller  ON staging.order_items (seller_id);
 CREATE INDEX IF NOT EXISTS ix_orders_cust   ON staging.orders (customer_id);
 
-DROP MATERIALIZED VIEW IF EXISTS staging.mv_order_summary CASCADE;   -- also drops dependents
+DROP MATERIALIZED VIEW IF EXISTS staging.mv_order_summary CASCADE;   -- also drops dependents/CASCADE tells PostgreSQL to also delete objects (depended objects: mv_customer_rfm and mv_cohort_retention) that depend on the materialized view.
 DROP MATERIALIZED VIEW IF EXISTS staging.mv_monthly_category_revenue;
 DROP MATERIALIZED VIEW IF EXISTS staging.mv_seller_scorecard;
 DROP MATERIALIZED VIEW IF EXISTS staging.mv_delivery_distance;
+
 
 -- ---------------------------------------------------------------------
 -- 1. BASE: one row per order, joined from 5 sources

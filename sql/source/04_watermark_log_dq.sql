@@ -71,22 +71,26 @@ DECLARE
     v_rejected  INT := 0;
     v_loaded    INT := 0;
 BEGIN
+	-- Bookmark
     -- make sure a control row exists, then read the watermark
     INSERT INTO staging.etl_control (table_name) VALUES ('orders')
     ON CONFLICT (table_name) DO NOTHING;
 
+	-- store the value of last_loaded_ts from previous step	
     SELECT last_loaded_ts INTO v_wm_from
     FROM staging.etl_control WHERE table_name = 'orders';
 
+	-- Diary
     -- log start (outside the exception block, so it survives a failure)
     INSERT INTO staging.etl_log (run_id, step_name, started_at, status, watermark_from)
-    VALUES (v_run_id, 'load_orders_incremental', clock_timestamp(), 'RUNNING', 	)
-    RETURNING log_id INTO v_log_id;
+    VALUES (v_run_id, 'load_orders_incremental', clock_timestamp(), 'RUNNING', v_wm_from)
+    RETURNING log_id INTO v_log_id;  
 
     BEGIN
         -- E + T: only rows newer than the watermark, with a DQ reason column
         DROP TABLE IF EXISTS tmp_orders_delta;
         CREATE TEMP TABLE tmp_orders_delta AS
+		-- run data quality rules
         SELECT d.*,
                CASE
                    WHEN d.order_id IS NULL
@@ -101,6 +105,7 @@ BEGIN
                         THEN 'ORPHAN_CUSTOMER'
                END AS dq_reason
         FROM (
+			-- 1.2: transform the raw data (order_status, delivery_days
             SELECT DISTINCT ON (order_id)
                    order_id, customer_id,
                    LOWER(TRIM(order_status::TEXT))                    AS order_status,
@@ -108,6 +113,7 @@ BEGIN
                    (customer_ts::DATE - purchase_ts::DATE)            AS delivery_days,
                    CASE WHEN customer_ts IS NULL THEN NULL
                         ELSE customer_ts > estimated_ts END           AS is_late
+			-- Level 1.1: Read and convert the raw data
             FROM (
                 SELECT order_id, customer_id, order_status,
                        NULLIF(order_purchase_timestamp::TEXT, '')::TIMESTAMP        AS purchase_ts,
@@ -117,6 +123,7 @@ BEGIN
                        NULLIF(order_estimated_delivery_date::TEXT, '')::TIMESTAMP   AS estimated_ts
                 FROM raw.orders
             ) r
+			-- 1.3: the incremental filter
             WHERE r.purchase_ts > v_wm_from                 -- the incremental filter
             ORDER BY order_id
         ) d;
@@ -190,7 +197,8 @@ BEGIN
     SELECT now(), check_name, failed_rows,
            CASE WHEN failed_rows = 0 THEN 'PASS' ELSE 'FAIL' END
     FROM (
-        SELECT 'orders_without_customer' AS check_name, COUNT(*)::INT AS failed_rows
+        SELECT 'orders_without_customer' AS check_name, 
+						   COUNT(*)::INT AS failed_rows
         FROM staging.orders o
         LEFT JOIN staging.customers c ON c.customer_id = o.customer_id
         WHERE c.customer_id IS NULL
@@ -212,7 +220,7 @@ BEGIN
     ) c;
 END $$;
 
--- ---------------------------------------------------------------------
+-- ------------------------------	---------------------------------------
 -- 4. DEMO
 -- ---------------------------------------------------------------------
 -- Prepare (full load once, so customers exist):
